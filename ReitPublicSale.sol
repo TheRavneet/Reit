@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.7;
 
 import "./ReentrancyGuard.sol";
 import "./TransferHelper.sol";
@@ -41,22 +41,13 @@ contract ReitPublicSale is Ownable, ReentrancyGuard {
     address public tokenAddress;
     uint32 public ICOStartTime;
 
-    // Binance Chain
     address public BNBOracleAddress =
-        0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526;
+        0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
     address public BUSDOracleAddress =
-        0x9331b55D9830EF609A2aBCfAc0FBCE050A52fdEa;
-    address public BUSDAddress = 0xb57481AB82CF558b411dA2Aa60D9d5C2E93181D6;
+        0x3E7d1eAB13ad0104d2750B8863b489D65364e32D;
+    address public BUSDAddress = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
 
-    // Rinkeby Chain
-    // address public BNBOracleAddress =
-    //     0x8A753747A1Fa494EC906cE90E9f37563A8AF630e; //rinkeby
-    // address public BUSDOracleAddress =
-    //     0xa24de01df22b63d23Ebc1882a5E3d4ec0d907bFB; //rinkeby
-    // address public BUSDAddress = 0x6131ca327571AfD53139fc8d10917F1bf9Bb62fE; //rinkeby
-
-    address public receiverAddress = 0xE380a93Db38f46866fdf4Ca86005cb51CC259771;
-    // address public receiverAddress = 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65; // for testing
+    address public receiverAddress = 0x783b966bC8049bf33D0A573B36127184aDE9C8A7;
 
     /* ============= STRUCT SECTION ============= */
 
@@ -93,28 +84,28 @@ contract ReitPublicSale is Ownable, ReentrancyGuard {
         phaseInfo[1] = PhaseInfo({
             tokenLimit: 1_000_000_000 * decimalsValue,
             tokenSold: 0,
-            expirationTimestamp: ICOStartTime + 5 minutes, //15 days
+            expirationTimestamp: ICOStartTime + 60 days,
             price: 5,
             isComplete: false
         });
         phaseInfo[2] = PhaseInfo({
             tokenLimit: 1_000_000_000 * decimalsValue,
             tokenSold: 0,
-            expirationTimestamp: phaseInfo[1].expirationTimestamp + 5 minutes, //15 days
+            expirationTimestamp: phaseInfo[1].expirationTimestamp + 15 days,
             price: 10,
             isComplete: false
         });
         phaseInfo[3] = PhaseInfo({
             tokenLimit: 1_000_000_000 * decimalsValue,
             tokenSold: 0,
-            expirationTimestamp: phaseInfo[2].expirationTimestamp + 5 minutes, //15 days
+            expirationTimestamp: phaseInfo[2].expirationTimestamp + 15 days,
             price: 15,
             isComplete: false
         });
         phaseInfo[4] = PhaseInfo({
             tokenLimit: 1_000_000_000 * decimalsValue,
             tokenSold: 0,
-            expirationTimestamp: phaseInfo[3].expirationTimestamp + 5 minutes, //15 days
+            expirationTimestamp: phaseInfo[3].expirationTimestamp + 15 days,
             price: 20,
             isComplete: false
         });
@@ -129,7 +120,7 @@ contract ReitPublicSale is Ownable, ReentrancyGuard {
     {
         //_type=1 for BNB and type =2 for BUSD
         require(
-            block.timestamp < phaseInfo[(totalPhases - 1)].expirationTimestamp,
+            block.timestamp < phaseInfo[totalPhases].expirationTimestamp,
             "Buying Phases are over"
         );
 
@@ -200,7 +191,6 @@ contract ReitPublicSale is Ownable, ReentrancyGuard {
         (uint256 _amountToUSD, uint256 _typeDecimal) = cryptoValues(_type);
         uint256 _amountGivenInUsd = ((_amount * _amountToUSD) / _typeDecimal);
         (uint256 _tokenAmount, uint8 _phaseValue) = calculateTokensInternal(
-            _type,
             _amountGivenInUsd,
             defaultPhase,
             0
@@ -210,7 +200,6 @@ contract ReitPublicSale is Ownable, ReentrancyGuard {
 
     // Internal Function to calculate tokens
     function calculateTokensInternal(
-        uint8 _type,
         uint256 _amount,
         uint8 _phaseNo,
         uint256 _previousTokens
@@ -234,7 +223,6 @@ contract ReitPublicSale is Ownable, ReentrancyGuard {
             if (_tokensLeftToSell == 0) {
                 return
                     calculateTokensInternal(
-                        _type,
                         _amount,
                         _phaseNo + 1,
                         _previousTokens
@@ -260,7 +248,6 @@ contract ReitPublicSale is Ownable, ReentrancyGuard {
                     uint256 _remainingTokens,
                     uint8 _newPhase
                 ) = calculateTokensInternal(
-                        _type,
                         _amount - _tokenPriceInPhase,
                         _phaseNo + 1,
                         0
@@ -274,7 +261,6 @@ contract ReitPublicSale is Ownable, ReentrancyGuard {
             uint256 _remainingTokens = pInfo.tokenLimit - pInfo.tokenSold;
             return
                 calculateTokensInternal(
-                    _type,
                     _amount,
                     _phaseNo + 1,
                     _remainingTokens + _previousTokens
@@ -312,23 +298,13 @@ contract ReitPublicSale is Ownable, ReentrancyGuard {
         uint128 _amountToUsd;
         uint128 _decimalValue;
 
-        // if (_type == 1) {
-        //     _amountToUsd = OracleWrapper(BNBOracleAddress).latestAnswer();
-        //     _decimalValue = 10**18;
-        // } else if (_type == 2) {
-        //     _amountToUsd = OracleWrapper(BUSDOracleAddress).latestAnswer();
-        //     _decimalValue = uint128(10**Token(BUSDAddress).decimals());
-        // }
-
-        // For unit tests
         if (_type == 1) {
-            _amountToUsd = 50000000 * 10**8;
+            _amountToUsd = OracleWrapper(BNBOracleAddress).latestAnswer();
             _decimalValue = 10**18;
-        } else {
-            _amountToUsd = 10000 * 10**8;
+        } else if (_type == 2) {
+            _amountToUsd = OracleWrapper(BUSDOracleAddress).latestAnswer();
             _decimalValue = uint128(10**Token(BUSDAddress).decimals());
         }
-
         return (_amountToUsd, _decimalValue);
     }
 

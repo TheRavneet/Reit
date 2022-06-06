@@ -13,6 +13,11 @@ contract Ownable {
         owner = msg.sender;
     }
 
+    function renounceOwnership() public onlyOwner {
+        emit OwnershipTransferred(owner, address(0));
+        owner = address(0);
+    }
+
     modifier onlyOwner() {
         require(msg.sender == owner);
         _;
@@ -34,19 +39,10 @@ contract ReitCoin is Ownable {
     uint256 public Max_Token;
     bool mintAllowed = true;
 
-    //  team address for TESTING
-    address public foundersTeam = 0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc;
-    address public reservesTeam = 0x976EA74026E726554dB657fA54763abd0C3a0aa9;
-    address public charityTeam = 0x14dC79964da2C08b23698B3D3cc7Ca32193d9955;
-    address public strategyInitiativeTeam =
-        0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f;
-
-    // team addresses
-    // address public foundersTeam = 0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2;
-    // address public reservesTeam = 0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db;
-    // address public charityTeam = 0x78731D3Ca6b7E34aC0F824c42a7cC18A495cabaB;
-    // address public strategyInitiativeTeam = 0x617F2E2fD72FD9D5503197092aC168c91465E7f2;
-
+    address public foundersTeam = 0xA899DdF11218D31f2f964a482933869F9602E1AD;
+    address public reservesTeam = 0x0B1984712cf5C6d3015297cAEFf74b7fEEc694a0;
+    address public charityTeam = 0xAc91f134D522512DAA1337d8897C460B2fa79bf6;
+    address public strategyInitiativeTeam =0x320C1a2b6F261A6904c76d5f525719B608816DBC;
     struct Team {
         uint256 teamAmount;
         uint256 claimedAmount;
@@ -61,7 +57,11 @@ contract ReitCoin is Ownable {
     mapping(address => mapping(address => uint256)) public allowance;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
-    event Burn(address indexed from, uint256 value);
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint256 value
+    );
 
     constructor(
         string memory SYMBOL,
@@ -95,10 +95,6 @@ contract ReitCoin is Ownable {
             100,
             30 days
         );
-
-        // // testing with smaller timestamps for testing
-        // createTeam(1,foundersTeam,60, 2_000_000_000*decimalfactor,10000,0);
-        // createTeam(2,reservesTeam,120,2_500_000_000*decimalfactor,1000,60);
     }
 
     function createTeam(
@@ -212,6 +208,7 @@ contract ReitCoin is Ownable {
         returns (bool success)
     {
         allowance[msg.sender][_spender] = _value;
+        emit Approval(msg.sender, _spender, _value);
         return true;
     }
 
@@ -219,7 +216,8 @@ contract ReitCoin is Ownable {
         require(balanceOf[msg.sender] >= _value);
         balanceOf[msg.sender] -= _value;
         totalSupply -= _value;
-        emit Burn(msg.sender, _value);
+        mintAllowed = true;
+        emit Transfer(msg.sender, address(0), _value);
         return true;
     }
 
